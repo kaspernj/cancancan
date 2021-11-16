@@ -25,16 +25,12 @@ module CanCan
       delegate :quote_table_name, to: :connection
 
       def build_joins_relation(relation, *where_conditions)
-        case CanCan.accessible_by_strategy
-        when :joined_alias_each_rule_as_exists_subquery
-          build_joined_alias_each_rule_as_exists_subquery(where_conditions)
-        when :joined_alias_exists_subquery
-          build_joined_alias_exists_subquery(where_conditions)
-        when :subquery
-          build_joins_relation_subquery(where_conditions)
-        when :left_join
-          relation.left_joins(joins).distinct
-        end
+        strategy_class.new(adapter: self, relation: relation, where_conditions: where_conditions).execute!
+      end
+
+      def strategy_class
+        strategy_class_name = CanCan.accessible_by_strategy.to_s.camelize
+        CanCan::ModelAdapters::Strategies.const_get(strategy_class_name)
       end
 
       def build_joined_alias_each_rule_as_exists_subquery(where_conditions)
